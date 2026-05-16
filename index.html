@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XG · 自焚聊天室</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+SC:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+/* ===== CSS Variables ===== */
+:root {
+  --bg-void: #0a0a0f;
+  --bg-deep: #0f0f18;
+  --bg-card: #161624cc;
+  --accent-red: #ff2d55;
+  --accent-amber: #ffb800;
+  --accent-green: #00ff88;
+  --accent-cyan: #00e5ff;
+  --text-primary: #e8e6f0;
+  --text-dim: #6b6880;
+  --glow-red: 0 0 20px #ff2d5544, 0 0 60px #ff2d5522;
+  --glow-green: 0 0 15px #00ff8844;
+  --border-subtle: rgba(255,255,255,0.06);
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-sans: 'Noto Sans SC', -apple-system, sans-serif;
+}
+
+/* ===== Reset & Base ===== */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg-void);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ===== Background Layer ===== */
+.bg-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background:
+    url('bg.jpg') center/cover no-repeat,
+    radial-gradient(ellipse 600px 400px at 20% 20%, #ff2d5508, transparent),
+    radial-gradient(ellipse 500px 500px at 80% 80%, #00e5ff06, transparent),
+    linear-gradient(180deg, #0a0a0f 0%, #0f0f18ee 100%);
+}
+.bg-layer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(10,10,15,0.65);
+  backdrop-filter: blur(3px);
+}
+
+/* ===== Ambient Glow ===== */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 600px 400px at 20% 20%, #ff2d5508, transparent),
+    radial-gradient(ellipse 500px 500px at 80% 80%, #00e5ff06, transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ===== App Container ===== */
+.app {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+/* ===== Header ===== */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  backdrop-filter: blur(20px);
+  animation: slideDown .5s ease-out both;
+}
+.logo-img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 12px rgba(0,229,255,0.3));
+  animation: logoFloat 4s ease-in-out infinite;
+}
+.header-info { flex: 1; }
+.header-title {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--accent-cyan);
+  text-shadow: 0 0 20px rgba(0,229,255,0.4);
+}
+.header-sub {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 2px;
+  letter-spacing: 1px;
+}
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-green);
+  box-shadow: var(--glow-green);
+  animation: pulse 2s ease-in-out infinite;
+}
+.status-text {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent-green);
+  letter-spacing: 1px;
+}
+
+/* ===== Chat Area ===== */
+.chat-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 4px;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: var(--bg-card) transparent;
+}
+.chat-area::-webkit-scrollbar { width: 4px; }
+.chat-area::-webkit-scrollbar-thumb { background: var(--bg-card); border-radius: 4px; }
+
+/* ===== Message Bubble ===== */
+.msg {
+  display: flex;
+  gap: 10px;
+  padding: 12px 16px;
+  margin-bottom: 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  backdrop-filter: blur(16px);
+  animation: msgIn .35s cubic-bezier(.22,1,.36,1) both;
+  position: relative;
+  overflow: hidden;
+  transition: opacity .6s ease, transform .6s ease;
+}
+.msg.burning {
+  opacity: 0 !important;
+  transform: scale(0.9) translateY(-10px) !important;
+  filter: blur(8px);
+  transition: opacity .8s ease, transform .8s ease, filter .8s ease;
+}
+.msg-burn-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent-red), var(--accent-amber), transparent);
+  border-radius: 2px;
+  transition: width linear;
+}
+.msg-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-red), var(--accent-cyan));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
+.msg-body { flex: 1; min-width: 0; }
+.msg-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.msg-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+}
+.msg-time {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+}
+.msg-timer {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--accent-amber);
+  margin-left: auto;
+  white-space: nowrap;
+}
+.msg-text {
+  font-size: 14px;
+  line-height: 1.55;
+  word-break: break-word;
+  color: var(--text-primary);
+}
+
+/* ===== Input Area ===== */
+.input-area {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  padding: 14px 16px;
+  margin-top: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  backdrop-filter: blur(20px);
+  animation: slideUp .5s ease-out .1s both;
+}
+.input-wrap { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+#msgInput {
+  width: 100%;
+  padding: 12px 16px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  outline: none;
+  resize: none;
+  min-height: 44px;
+  max-height: 120px;
+  transition: border-color .25s, box-shadow .25s;
+}
+#msgInput:focus {
+  border-color: var(--accent-cyan33);
+  box-shadow: 0 0 0 2px rgba(0,229,255,0.08);
+}
+#msgInput::placeholder { color: var(--text-dim); }
+
+.input-options {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.ttl-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.ttl-select {
+  appearance: none;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  color: var(--accent-amber);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 4px 28px 4px 10px;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6' fill='%236b6880'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+}
+.ttl-select:focus { outline: none; border-color: var(--accent-amber); }
+
+.send-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  border: 1px solid var(--accent-red33);
+  background: linear-gradient(135deg, #ff2d5520, #ff2d5508);
+  color: var(--accent-red);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all .25s;
+  flex-shrink: 0;
+}
+.send-btn:hover {
+  background: linear-gradient(135deg, #ff2d5533, #ff2d5515);
+  box-shadow: var(--glow-red);
+  transform: scale(1.04);
+}
+.send-btn:active { transform: scale(0.96); }
+.send-btn svg { width: 20px; height: 20px; fill: currentColor; }
+
+/* ===== Empty State ===== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 16px;
+  animation: fadeIn .6s ease-out .3s both;
+}
+.empty-icon {
+  font-size: 48px;
+  opacity: 0.15;
+}
+.empty-text {
+  font-size: 14px;
+  color: var(--text-dim);
+  letter-spacing: 2px;
+}
+.empty-hint {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  opacity: 0.5;
+}
+
+/* ===== Burn Effect Overlay ===== */
+.burn-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  background: radial-gradient(circle, transparent 40%, rgba(255,45,85,0.06) 100%);
+  opacity: 0;
+  transition: opacity .3s;
+}
+.burn-overlay.active { opacity: 1; }
+
+/* ===== Animations ===== */
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes msgIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+@keyframes logoFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 600px) {
+  .app { padding: 10px; }
+  .header { padding: 10px 14px; }
+  .logo-img { width: 38px; height: 38px; }
+  .header-title { font-size: 15px; }
+  .input-area { flex-wrap: wrap; }
+  .send-btn { width: 44px; height: 44px; }
+}
+</style>
+</head>
+<body>
+
+<div class="bg-layer"></div>
+<div class="burn-overlay" id="burnOverlay"></div>
+
+<div class="app">
+  <!-- Header -->
+  <div class="header">
+    <img src="logo.jpg" alt="XG Logo" class="logo-img">
+    <div class="header-info">
+      <div class="header-title">XG 自焚聊天室</div>
+      <div class="header-sub">BURN AFTER READING // 阅后即焚</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;margin-left:auto;">
+      <span class="status-dot"></span>
+      <span class="status-text">ENCRYPTED</span>
+    </div>
+  </div>
+
+  <!-- Chat Messages -->
+  <div class="chat-area" id="chatArea">
+    <div class="empty-state" id="emptyState">
+      <div class="empty-icon">🔥</div>
+      <div class="empty-text">消息阅后即焚</div>
+      <div class="empty-hint">// 所有消息将在设定时间后自动销毁 //</div>
+    </div>
+  </div>
+
+  <!-- Input -->
+  <div class="input-area">
+    <div class="input-wrap">
+      <textarea id="msgInput" placeholder="输入消息... 消息将自动销毁 ↻" rows="1" onkeydown="handleKey(event)"></textarea>
+      <div class="input-options">
+        <span class="ttl-label">自毁倒计时</span>
+        <select class="ttl-select" id="ttlSelect">
+          <option value="5">5 秒</option>
+          <option value="10" selected>10 秒</option>
+          <option value="30">30 秒</option>
+          <option value="60">60 秒</option>
+          <option value="300">5 分钟</option>
+        </select>
+      </div>
+    </div>
+    <button class="send-btn" onclick="sendMessage()" title="发送">
+      <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+    </button>
+  </div>
+</div>
+
+<script>
+const chatArea = document.getElementById('chatArea');
+const msgInput = document.getElementById('msgInput');
+const ttlSelect = document.getElementById('ttlSelect');
+const emptyState = document.getElementById('emptyState');
+const burnOverlay = document.getElementById('burnOverlay');
+
+let msgId = 0;
+const messages = new Map();
+
+// Auto-resize textarea
+msgInput.addEventListener('input', () => {
+  msgInput.style.height = 'auto';
+  msgInput.style.height = Math.min(msgInput.scrollHeight, 120) + 'px';
+});
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function getInitial(name) {
+  return name ? name.charAt(0).toUpperCase() : '?';
+}
+
+function formatTime() {
+  const now = new Date();
+  return now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+function randomName() {
+  const names = ['匿名用户', '幽灵', '暗影', '旅人', '过客', '观察者', 'XG-AGENT', '节点', '访客', 'UNKNOWN'];
+  return names[Math.floor(Math.random() * names.length)] + Math.floor(Math.random() * 99);
+}
+
+function sendMessage() {
+  const text = msgInput.value.trim();
+  if (!text) return;
+
+  const ttl = parseInt(ttlSelect.value);
+  const name = randomName();
+  const id = ++msgId;
+
+  emptyState.style.display = 'none';
+
+  const el = document.createElement('div');
+  el.className = 'msg';
+  el.id = `msg-${id}`;
+  el.innerHTML = `
+    <div class="msg-avatar">${getInitial(name)}</div>
+    <div class="msg-body">
+      <div class="msg-meta">
+        <span class="msg-name">${name}</span>
+        <span class="msg-time">${formatTime()}</span>
+        <span class="msg-timer" id="timer-${id}">${ttl}s</span>
+      </div>
+      <div class="msg-text">${escapeHtml(text)}</div>
+    </div>
+    <div class="msg-burn-bar" id="bar-${id}" style="width:100%"></div>
+  `;
+
+  chatArea.appendChild(el);
+  chatArea.scrollTop = chatArea.scrollHeight;
+
+  msgInput.value = '';
+  msgInput.style.height = 'auto';
+
+  // Start countdown
+  const started = Date.now();
+  const timerEl = document.getElementById(`timer-${id}`);
+  const barEl = document.getElementById(`bar-${id}`);
+
+  const interval = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - started) / 1000);
+    const remain = ttl - elapsed;
+    if (remain <= 0) {
+      clearInterval(interval);
+      burnMessage(id, el);
+      return;
+    }
+    if (timerEl) timerEl.textContent = `${remain}s`;
+    if (barEl) barEl.style.width = `${(remain / ttl) * 100}%`;
+  }, 200);
+
+  messages.set(id, { interval, el });
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function burnMessage(id, el) {
+  if (!el || !el.parentNode) return;
+
+  // Flash effect
+  burnOverlay.classList.add('active');
+  setTimeout(() => burnOverlay.classList.remove('active'), 300);
+
+  el.classList.add('burning');
+  
+  setTimeout(() => {
+    if (el.parentNode) el.remove();
+    messages.delete(id);
+
+    // Show empty state if no messages
+    if (messages.size === 0 && chatArea.children.length === 0) {
+      emptyState.style.display = 'flex';
+    }
+  }, 800);
+}
+
+// Demo messages on load
+setTimeout(() => {
+  const demos = [
+    { text: '欢迎来到 XG 自焚聊天室 🔥', ttl: 8 },
+    { text: '所有消息将在倒计时结束后永久销毁，无法恢复。', ttl: 12 },
+    { text: '选择右下角的自毁时间，发送消息体验效果。', ttl: 15 },
+  ];
+  let delay = 400;
+  demos.forEach(d => {
+    setTimeout(() => {
+      msgInput.value = d.text;
+      const oldTTL = ttlSelect.value;
+      ttlSelect.value = String(d.ttl);
+      sendMessage();
+      ttlSelect.value = oldTTL;
+      msgInput.value = '';
+    }, delay);
+    delay += 800;
+  });
+}, 800);
+</script>
+</body>
+</html>

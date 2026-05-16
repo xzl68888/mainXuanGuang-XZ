@@ -1,0 +1,1 @@
+{"name": "XuanGuang-XZ", "version": "1.0.0", "description": "XG 自焚聊天室 - Burn After Reading Chat", "main": "server.js", "scripts": {"start": "node server.js"}, "engines": {"node": ">=18"}}
