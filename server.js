@@ -201,7 +201,7 @@ server.on('upgrade', (req, socket, head) => {
         users.delete(userId);
 
         broadcastToRoom(user.room, {
-          type: 'user_left',
+          type: 'user_left._leave',
           username: user.username,
         }, userId);
 
