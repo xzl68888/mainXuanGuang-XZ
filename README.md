@@ -1,5 +1,5 @@
-# XuanGuang Group - 加密自焚终端
-
+# 
+XuanGuang Group - 加密自焚终端
 ## 简介
 
 XuanGuang Group 是一款专注于隐私保护的桌面通讯应用，提供端到端加密的「阅后即焚」消息服务。
