@@ -2,8 +2,10 @@ services:
   - type: web
     name: xzl68888-xuanguang-xz
     env: node
-    buildCommand: ""
+    buildCommand: "npm install"
     startCommand: node server.js
     envVars:
       - key: NODE_VERSION
         value: 22
+      - key: PORT
+        generateValue: true

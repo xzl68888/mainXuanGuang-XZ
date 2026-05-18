@@ -1,129 +1,89 @@
-# XuanGuang Group - 加密自焚终端
+# XG 自焚聊天室 v2.0
 
-## 简介
+**阅后即焚** - 所有消息在设定时间后自动销毁，无法恢复。
 
-XuanGuang Group 是一款专注于隐私保护的桌面通讯应用，提供端到端加密的「阅后即焚」消息服务。
+## ✨ 特性
 
-## 功能特性
+- 🔐 **AES-256-GCM 端到端加密** - 消息在客户端加密后传输
+- ⏱️ **定时销毁** - 5秒/10秒/30秒/60秒/5分钟可选
+- 💬 **实时聊天** - WebSocket 实时通信，支持多房间
+- 👥 **在线用户** - 实时显示房间内在线用户
+- 🎨 **现代化 UI** - 深色主题，优雅动画
+- 💻 **桌面支持** - 可打包为 Electron 桌面应用
 
-- 🔐 端到端加密 - AES-GCM 256位算法
-- ⏱️ 定时销毁 - 10秒/30秒/60秒可选
-- 💨 消散动画 - 优雅的模糊消失效果
-- 🎨 现代化 UI - Telegram 风格界面
-- 💻 桌面应用 - 基于 Electron 构建
+## 🚀 快速开始
 
-## 快速开始
+### 方式一：Web 模式（推荐）
 
 ```bash
-npm install
+# 克隆仓库
+git clone https://github.com/xzl68888/mainXuanGuang-XZ.git
+cd mainXuanGuang-XZ
+
+# 启动服务器
 npm start
-npm run dist
+
+# 浏览器访问 http://localhost:10000
 ```
 
-## 安全修复说明
+### 方式二：Electron 桌面应用
 
-| 项目 | 修复前 | 修复后 |
-|------|--------|--------|
-| nodeIntegration | `true` ⚠️ | `false` ✅ |
-| contextIsolation | `false` ⚠️ | `true` ✅ |
-| sandbox | 未设置 ⚠️ | `true` ✅ |
-| preload | 无 ⚠️ | `preload.js` ✅ |
-| CSP | 无 / `unsafe-inline` ⚠️ | `script-src 'self'` ✅ |
-| inline-js | `onclick=` ⚠️ | `addEventListener` ✅ |
-| XSS 防护 | 无 ⚠️ | `escapeHtml()` ✅ |
+```bash
+# 安装依赖
+npm install
 
-## 许可证
+# 启动桌面应用
+npm run electron
+```
+
+## 📁 项目结构
+
+```
+mainXuanGuang-XZ/
+├── server.js        # WebSocket + HTTP 服务器
+├── main.js          # Electron 主进程
+├── preload.js       # Electron 预加载脚本
+├── module.js        # AES-GCM 加密模块
+├── chat-app.js      # 聊天客户端逻辑
+├── login.html       # 登录页面
+├── chat.html        # 聊天主界面
+├── index.html       # 旧版演示页面（保留）
+├── package.json     # 项目配置
+└── README.md        # 本文档
+```
+
+## 🔒 安全特性
+
+| 特性 | 状态 |
+|------|------|
+| AES-256-GCM 加密 | ✅ |
+| 客户端加密 | ✅ |
+| 路径遍历防护 | ✅ |
+| XSS 防护 (escapeHtml) | ✅ |
+| 消息长度限制 | ✅ |
+| TTL 范围限制 | ✅ |
+
+## 🎯 使用说明
+
+1. **输入用户名** - 进入登录页面，输入你的代号
+2. **选择房间** - 可选填房间号，留空使用默认房间
+3. **发送消息** - 输入消息，选择自毁时间，点击发送
+4. **消息销毁** - 倒计时结束后，消息自动模糊消失
+
+## 📝 更新日志
+
+### v2.0.0 (2026-05-18)
+- 🔄 完全重构，修复所有 JavaScript 语法错误
+- ✨ 新增 WebSocket 实时多用户聊天
+- ✨ 新增登录系统和多房间支持
+- ✨ 新增在线用户列表
+- 🔒 增强 AES-256-GCM 端到端加密
+- 🎨 全新 UI 设计，深色主题
+- 📱 响应式设计，支持移动端
+
+### v1.0.0
+- 初始版本
+
+## 📜 License
 
 MIT License
-
-：根 {
-    --brand-cyan: #88eeff;
-    --bg-dark: #0e1621;
-    --panel-bg: #17212b;
-}
-
-身体 {
-    边距：0；
-    background: #0e1621 url('bg.jpg.jpg') no-repeat center center fixed;
-    background-size: cover;
-    颜色：白色；
-    font-family: 'Segoe UI', sans-serif;
-}
-body::before {
-    内容： '';
-    位置：固定；
-    插入：0；
-    背景色：rgba(14, 22, 33, 0.55);
-    z-index：0；
-}
-.app-container {
-    显示方式：flex；
-    弯曲方向：柱；
-    高度：100vh；
-    位置：相对；
-    z-index：1；
-}
-
-.brand-header {
-    显示方式：flex；
-    align-items: center;
-    内边距：15px；
-    background: var(--panel-bg);
-    border-bottom: 2px solid var(--brand-cyan);
-}
-.app-logo {
-    宽度：45像素；
-    高度：45像素；
-    圆角半径：8px；
-    margin-right: 15px;
-    border: 1px solid var(--brand-cyan);
-    object-fit: 覆盖;
-}
-.brand-info h1 { font-size: 18px; margin: 0; color: var(--brand-cyan); letter-spacing: 2px; }
-.brand-info span { font-size: 10px; opacity: 0.6; }
-
-.connection-panel { padding: 10px 15px; background: #1c2733; border-bottom: 1px solid #2f3e4c; }
-.status-bar { font-size: 12px; color: var(--brand-cyan); }
-
-.chat-area { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
-。信息 {
-    最大宽度：70%；
-    内边距：12px；
-    圆角半径：12px；
-    背景色：#182533；
-    位置：相对；
-    过渡：全部缓动 0.8 秒；
-    动画：淡入 0.3 秒，缓出；
-}
-.sent { align-self: flex-end; background: #2b5278; border-right: 3px solid var(--brand-cyan); }
-
-.crypto-tag { font-size: 10px; color: var(--brand-cyan); margin-bottom: 5px; opacity: 0.8; }
-.text-content { word-break: break-word; }
-.timer-bar { height: 2px; background: var(--brand-cyan); width: 100%; margin-top: 8px; border-radius: 2px; }
-
-.input-area { padding: 20px; background: var(--panel-bg); display: flex; gap: 10px; align-items: center; }
-select { background: #242f3d; border: 1px solid #2f3e4c; color: white; padding: 10px; border-radius: 5px; }
-输入 {
-    弹性：1；
-    背景色：#242f3d；
-    border: 1px solid #2f3e4c;
-    颜色：白色；
-    内边距：10px；
-    圆角半径：5px；
-}
-.send-btn {
-    背景色：var(--brand-cyan);
-    颜色：#000；
-    字体粗细：粗体；
-    边框：无；
-    padding: 0 25px;
-    圆角半径：5px；
-    光标：指针；
-    高度：40像素；
-}
-.send-btn:hover { background: #aaf5ff; }
-
-@keyframes fadeIn {
-    从 { opacity: 0; transform: translateY(10px); }
-    设置为 { opacity: 1; transform: translateY(0); }
-    

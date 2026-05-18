@@ -1,25 +1,17 @@
-// preload.js - 向渲染器暴露 API
+// preload.js - Electron 预加载脚本 (安全桥接)
+
 const { contextBridge, ipcRenderer } = require('electron');
-const path = require('path');
-const WebRTCManager = require(path.join(__dirname, 'webrtc-manager.js'));
 
-const manager = new WebRTCManager();
-
-contextBridge.exposeInMainWorld('webrtc', {
-    onMessage: (cb) => manager.onMessage(cb),
-    onConnect: (cb) => manager.onConnect(cb),
-    onDisconnect: (cb) => manager.onDisconnect(cb),
-    createOffer: () => manager.createOffer(),
-    handleOffer: (offer) => manager.handleOffer(offer),
-    applyAnswer: (peerId, 答案) => manager.applyAnswer(peerId, 答案),
-    sendToAll: (msg) => manager.sendToAll(msg),
-    sendTo: (peerId, msg) => manager.sendTo(peerId, msg),
-    disconnectAll: () => manager.disconnectAll(),
-    getMyId: () => manager.myId
-});
-
+// 向渲染进程暴露安全的 API
 contextBridge.exposeInMainWorld('electronAPI', {
-    getServerUrl: () => 'http://localhost:3000',
-    sendSecureMessage: async (messageData) => {
-        return await ipcRenderer.invoke('secure-channels:send', messageData);
-    }
+  // 获取服务器 URL
+  getServerUrl: () => 'http://localhost:10000',
+
+  // 平台信息
+  platform: process.platform,
+
+  // 安全消息发送 (预留)
+  sendSecureMessage: async (messageData) => {
+    return await ipcRenderer.invoke('secure-channels:send', messageData);
+  },
+});

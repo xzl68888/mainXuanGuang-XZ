@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XG · 自焚聊天室</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+SC:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-void: #0a0a0f;
+  --bg-deep: #0f0f18;
+  --bg-card: #161624cc;
+  --bg-input: rgba(255,255,255,0.04);
+  --accent-red: #ff2d55;
+  --accent-amber: #ffb800;
+  --accent-green: #00ff88;
+  --accent-cyan: #00e5ff;
+  --text-primary: #e8e6f0;
+  --text-dim: #6b6880;
+  --glow-red: 0 0 20px #ff2d5544, 0 0 60px #ff2d5522;
+  --glow-green: 0 0 15px #00ff8844;
+  --border-subtle: rgba(255,255,255,0.06);
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-sans: 'Noto Sans SC', -apple-system, sans-serif;
+}
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; overflow: hidden; background: var(--bg-void); color: var(--text-primary); font-family: var(--font-sans); -webkit-tap-highlight-color: transparent; }
+
+.bg-layer { position: fixed; inset: 0; z-index: 0; background: url('bg.jpg') center/cover no-repeat, linear-gradient(180deg, #0a0a0f, #0f0f18ee); }
+.bg-layer::after { content: ''; position: absolute; inset: 0; background: rgba(10,10,15,0.7); backdrop-filter: blur(4px); }
+
+.app { position: relative; z-index: 2; display: flex; height: 100vh; }
+
+/* ===== Sidebar ===== */
+.sidebar {
+  width: 260px; display: flex; flex-direction: column;
+  background: rgba(12,12,20,0.85); border-right: 1px solid var(--border-subtle);
+  backdrop-filter: blur(20px);
+}
+.sidebar-header {
+  padding: 18px 20px; border-bottom: 1px solid var(--border-subtle);
+  display: flex; align-items: center; gap: 12px;
+}
+.sidebar-logo { width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, var(--accent-red), var(--accent-cyan)); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+.sidebar-title { font-size: 15px; font-weight: 700; color: var(--accent-cyan); letter-spacing: 1px; }
+.sidebar-subtitle { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); letter-spacing: 1px; }
+
+.room-info { padding: 12px 20px; border-bottom: 1px solid var(--border-subtle); }
+.room-label { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); letter-spacing: 1px; }
+.room-name { font-size: 13px; color: var(--accent-amber); margin-top: 2px; }
+
+.user-list { flex: 1; overflow-y: auto; padding: 8px; }
+.user-list-label { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); padding: 8px 12px; letter-spacing: 1px; }
+.user-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 10px; cursor: default;
+  transition: background .2s;
+}
+.user-item:hover { background: rgba(255,255,255,0.04); }
+.user-avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-red), var(--accent-cyan));
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 12px; flex-shrink: 0;
+}
+.user-name { font-size: 13px; flex: 1; }
+.user-online { width: 7px; height: 7px; border-radius: 50%; background: var(--accent-green); box-shadow: var(--glow-green); }
+
+.sidebar-footer { padding: 14px 20px; border-top: 1px solid var(--border-subtle); }
+.my-info { display: flex; align-items: center; gap: 10px; }
+.my-avatar {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-green));
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 11px;
+}
+.my-name { font-size: 13px; color: var(--accent-cyan); }
+.logout-btn { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 12px; padding: 4px 8px; border-radius: 6px; transition: all .2s; }
+.logout-btn:hover { color: var(--accent-red); background: rgba(255,45,85,0.1); }
+
+/* ===== Main Chat ===== */
+.chat-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+.chat-header {
+  padding: 14px 24px; border-bottom: 1px solid var(--border-subtle);
+  background: rgba(12,12,20,0.6); backdrop-filter: blur(20px);
+  display: flex; align-items: center; gap: 12px;
+}
+.chat-header-title { font-size: 15px; font-weight: 700; }
+.chat-header-status { font-family: var(--font-mono); font-size: 11px; color: var(--accent-green); display: flex; align-items: center; gap: 6px; }
+.chat-header-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent-green); box-shadow: var(--glow-green); animation: pulse 2s ease-in-out infinite; }
+.chat-header-encryption { margin-left: auto; font-family: var(--font-mono); font-size: 10px; color: var(--accent-cyan); opacity: 0.6; }
+
+.chat-area {
+  flex: 1; overflow-y: auto; padding: 20px 24px;
+  scroll-behavior: smooth;
+  scrollbar-width: thin; scrollbar-color: var(--bg-card) transparent;
+}
+.chat-area::-webkit-scrollbar { width: 4px; }
+.chat-area::-webkit-scrollbar-thumb { background: var(--bg-card); border-radius: 4px; }
+
+/* ===== Messages ===== */
+.msg { display: flex; gap: 10px; padding: 12px 16px; margin-bottom: 8px; border-radius: 12px; position: relative; overflow: hidden; animation: msgIn .35s cubic-bezier(.22,1,.36,1) both; transition: opacity .6s ease, transform .6s ease, filter .6s ease; }
+.msg.other { background: var(--bg-card); border: 1px solid var(--border-subtle); }
+.msg.self { background: rgba(0,229,255,0.06); border: 1px solid rgba(0,229,255,0.1); }
+.msg.burning { opacity: 0 !important; transform: scale(0.92) translateY(-8px) !important; filter: blur(10px) !important; }
+
+.msg-burn-bar { position: absolute; bottom: 0; left: 0; height: 2px; background: linear-gradient(90deg, var(--accent-red), var(--accent-amber), transparent); border-radius: 2px; transition: width linear; }
+.msg-avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 12px; flex-shrink: 0;
+}
+.msg.other .msg-avatar { background: linear-gradient(135deg, var(--accent-red), var(--accent-cyan)); }
+.msg.self .msg-avatar { background: linear-gradient(135deg, var(--accent-cyan), var(--accent-green)); }
+
+.msg-body { flex: 1; min-width: 0; }
+.msg-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.msg-name { font-size: 12px; font-weight: 700; color: var(--accent-cyan); }
+.msg-time { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); }
+.msg-timer { font-family: var(--font-mono); font-size: 10px; color: var(--accent-amber); margin-left: auto; white-space: nowrap; }
+.msg-text { font-size: 14px; line-height: 1.55; word-break: break-word; }
+
+/* ===== System Messages ===== */
+.sys-msg { text-align: center; padding: 8px; margin-bottom: 8px; font-size: 12px; color: var(--text-dim); font-family: var(--font-mono); animation: fadeIn .4s; }
+
+/* ===== Empty State ===== */
+.empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 16px; animation: fadeIn .6s; }
+.empty-icon { font-size: 48px; opacity: 0.15; }
+.empty-text { font-size: 14px; color: var(--text-dim); letter-spacing: 2px; }
+
+/* ===== Input ===== */
+.input-area {
+  padding: 16px 24px; background: rgba(12,12,20,0.7);
+  border-top: 1px solid var(--border-subtle);
+  backdrop-filter: blur(20px);
+  display: flex; align-items: flex-end; gap: 12px;
+}
+.input-wrap { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+#msgInput {
+  width: 100%; padding: 12px 16px;
+  background: var(--bg-input); border: 1px solid var(--border-subtle);
+  border-radius: 10px; color: var(--text-primary);
+  font-family: var(--font-sans); font-size: 14px;
+  outline: none; resize: none; min-height: 44px; max-height: 120px;
+  transition: border-color .25s, box-shadow .25s;
+}
+#msgInput:focus { border-color: rgba(0,229,255,0.3); box-shadow: 0 0 0 2px rgba(0,229,255,0.08); }
+#msgInput::placeholder { color: var(--text-dim); }
+
+.input-options { display: flex; align-items: center; gap: 12px; }
+.ttl-label { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); }
+.ttl-select {
+  appearance: none; background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border-subtle); border-radius: 6px;
+  color: var(--accent-amber); font-family: var(--font-mono); font-size: 11px;
+  padding: 4px 28px 4px 10px; cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6' fill='%236b6880'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 8px center;
+}
+.ttl-select:focus { outline: none; border-color: var(--accent-amber); }
+
+.send-btn {
+  width: 48px; height: 48px; border-radius: 12px;
+  border: 1px solid rgba(255,45,85,0.2);
+  background: linear-gradient(135deg, #ff2d5520, #ff2d5508);
+  color: var(--accent-red); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .25s; flex-shrink: 0;
+}
+.send-btn:hover { background: linear-gradient(135deg, #ff2d5533, #ff2d5515); box-shadow: var(--glow-red); transform: scale(1.04); }
+.send-btn:active { transform: scale(0.96); }
+.send-btn svg { width: 20px; height: 20px; fill: currentColor; }
+
+/* ===== Burn Overlay ===== */
+.burn-overlay { position: fixed; inset: 0; z-index: 9999; pointer-events: none; background: radial-gradient(circle, transparent 40%, rgba(255,45,85,0.06) 100%); opacity: 0; transition: opacity .3s; }
+.burn-overlay.active { opacity: 1; }
+
+/* ===== Animations ===== */
+@keyframes slideDown { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes msgIn { from { opacity: 0; transform: translateY(12px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .input-area { padding: 12px 16px; }
+}
+</style>
+</head>
+<body>
+
+<div class="bg-layer"></div>
+<div class="burn-overlay" id="burnOverlay"></div>
+
+<div class="app">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">🔥</div>
+      <div>
+        <div class="sidebar-title">XG</div>
+        <div class="sidebar-subtitle">BURN AFTER READING</div>
+      </div>
+    </div>
+    <div class="room-info">
+      <div class="room-label">ROOM</div>
+      <div class="room-name" id="roomDisplay">—</div>
+    </div>
+    <div class="user-list">
+      <div class="user-list-label">ONLINE — <span id="userCount">0</span></div>
+      <div id="userListContainer"></div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="my-info">
+        <div class="my-avatar" id="myAvatar">?</div>
+        <div class="my-name" id="myName">—</div>
+        <button class="logout-btn" id="logoutBtn">退出</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Chat -->
+  <div class="chat-main">
+    <div class="chat-header">
+      <div class="chat-header-title">🔥 自焚聊天室</div>
+      <div class="chat-header-status">
+        <span class="chat-header-dot"></span>
+        <span id="connStatus">连接中...</span>
+      </div>
+      <div class="chat-header-encryption">🔐 AES-256-GCM</div>
+    </div>
+
+    <div class="chat-area" id="chatArea">
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">🔥</div>
+        <div class="empty-text">消息阅后即焚</div>
+      </div>
+    </div>
+
+    <div class="input-area">
+      <div class="input-wrap">
+        <textarea id="msgInput" placeholder="输入消息... 消息将自动销毁 ↻" rows="1"></textarea>
+        <div class="input-options">
+          <span class="ttl-label">自毁倒计时</span>
+          <select class="ttl-select" id="ttlSelect">
+            <option value="5">5 秒</option>
+            <option value="10" selected>10 秒</option>
+            <option value="30">30 秒</option>
+            <option value="60">60 秒</option>
+            <option value="300">5 分钟</option>
+          </select>
+        </div>
+      </div>
+      <button class="send-btn" id="sendBtn" title="发送">
+        <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="module.js"></script>
+<script src="chat-app.js"></script>
+</body>
+</html>

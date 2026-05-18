@@ -1,1 +1,27 @@
-{"name": "XuanGuang-XZ", "version": "1.0.0", "description": "XG 自焚聊天室 - Burn After Reading Chat", "main": "server.js", "scripts": {"start": "node server.js"}, "engines": {"node": ">=18"}}
+{
+  "name": "xuanguang-xz",
+  "version": "2.0.0",
+  "description": "XG 自焚聊天室 - Burn After Reading Chat (WebSocket 实时聊天 + AES-256-GCM 端到端加密)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "electron": "electron main.js",
+    "dev": "NODE_ENV=development electron main.js"
+  },
+  "keywords": [
+    "chat",
+    "burn-after-reading",
+    "ephemeral",
+    "encrypted",
+    "websocket",
+    "realtime"
+  ],
+  "author": "XuanGuang Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "electron": "^28.0.0"
+  }
+}
