@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0a0f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>XG · 阅后即焚</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+SC:wght@300;400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════
+     页面一：登录页
+══════════════════════════════════════════════ -->
+<div id="page-login" class="page active">
+  <div class="login-bg"></div>
+  <div class="login-card">
+    <div class="login-logo">
+      <img src="../xg-logo.jpg" alt="XG" class="logo-img">
+      <div class="logo-glow"></div>
+    </div>
+    <h1 class="login-title">XG · 阅后即焚</h1>
+    <p class="login-subtitle">BURN AFTER READING</p>
+
+    <div class="login-form">
+      <div class="input-group">
+        <span class="input-icon">💬</span>
+        <input id="input-username" type="text" placeholder="输入你的昵称" maxlength="20" autocomplete="off" autocapitalize="none">
+      </div>
+      <div class="input-group">
+        <span class="input-icon">🏠</span>
+        <input id="input-room" type="text" placeholder="房间名（默认 default）" maxlength="30" value="default" autocomplete="off">
+      </div>
+
+      <div class="burn-mode-toggle">
+        <div class="toggle-label">
+          <span>🔥 阅后即焚模式</span>
+          <small>默认开启，消息自动销毁</small>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="toggle-default-burn" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <button id="btn-login" class="btn-primary" onclick="app.login()">
+        <span>🚀</span> 进入私密聊天室
+      </button>
+    </div>
+
+    <div class="login-security">
+      <span>🔐</span> 端到端加密 · AES-256-GCM · 内存即入即销
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     页面二：聊天室列表
+══════════════════════════════════════════════ -->
+<div id="page-rooms" class="page">
+  <header class="topbar">
+    <div class="topbar-left">
+      <span class="topbar-status" id="conn-status">
+        <span class="dot-green"></span> 已连接
+      </span>
+    </div>
+    <h2 class="topbar-title">🔥 阅后即焚</h2>
+    <div class="topbar-right">
+      <button class="icon-btn" onclick="app.showSettings()" title="设置">⚙️</button>
+    </div>
+  </header>
+
+  <!-- 在线用户列表 -->
+  <section class="online-section">
+    <div class="section-label">💨 在线用户 <span id="online-count">0</span></div>
+    <div class="online-users" id="online-users"></div>
+  </section>
+
+  <!-- 会话列表 -->
+  <section class="rooms-section">
+    <div class="section-label">💬 会话</div>
+    <div id="chat-list" class="chat-list">
+      <div class="chat-empty">
+        <span>🕯️</span>
+        <p>暂无消息<br><small>发送一条阅后即焚消息开启对话</small></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 底部输入栏（快速入口） -->
+  <div class="quick-join" onclick="app.goToChat()">
+    <span>💬</span> 进入聊天室
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     页面三：聊天详情
+══════════════════════════════════════════════ -->
+<div id="page-chat" class="page privacy-mode">
+  <header class="topbar chat-topbar">
+    <button class="icon-btn back-btn" onclick="app.goBack()">←</button>
+    <div class="chat-header-info">
+      <span class="chat-room-name" id="chat-room-name">房间</span>
+      <span class="chat-header-status" id="chat-header-status">🔥 阅后即焚模式</span>
+    </div>
+    <button class="icon-btn" onclick="app.showBurnSettings()" title="焚烧设置">🔥</button>
+  </header>
+
+  <!-- 安全提示条 -->
+  <div class="security-banner" id="security-banner">
+    <span>🛡️</span> 本会话已启用防截屏保护 · 截屏将触发即时销毁
+  </div>
+
+  <!-- 消息列表 -->
+  <div class="message-area" id="message-area" onscroll="app.loadMore()">
+    <div class="msg-init">
+      <div class="flame-icon">🔥</div>
+      <p>消息开启阅后即焚模式</p>
+      <small>对方阅读后自动倒计时销毁</small>
+    </div>
+  </div>
+
+  <!-- 输入区域 -->
+  <div class="input-area" id="input-area">
+    <!-- 阅后即焚开关 -->
+    <div class="burn-switch-row">
+      <span class="burn-label" id="burn-label">
+        <span id="burn-icon">🔥</span>
+        <span id="burn-text">阅后即焚</span>
+      </span>
+      <label class="switch burn-switch">
+        <input type="checkbox" id="burn-toggle" checked onchange="app.toggleBurnMode()">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <!-- 时效选择 -->
+    <div class="ttl-row" id="ttl-row">
+      <span class="ttl-label">⏱️ 焚烧倒计时：</span>
+      <div class="ttl-buttons">
+        <button class="ttl-btn" data-ttl="5" onclick="app.setTTL(5)">5秒</button>
+        <button class="ttl-btn active" data-ttl="10" onclick="app.setTTL(10)">10秒</button>
+        <button class="ttl-btn" data-ttl="30" onclick="app.setTTL(30)">30秒</button>
+        <button class="ttl-btn" data-ttl="60" onclick="app.setTTL(60)">60秒</button>
+      </div>
+    </div>
+
+    <!-- 消息输入 -->
+    <div class="msg-input-row">
+      <input id="msg-input" type="text" placeholder="输入消息..." maxlength="2000" autocomplete="off" onkeydown="app.onKeyDown(event)">
+      <button class="send-btn" id="send-btn" onclick="app.sendMessage()">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" fill="#fff"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     全局组件：焚烧设置弹窗
+══════════════════════════════════════════════ -->
+<div id="modal-burn-settings" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>🔥 焚烧设置</h3>
+      <button class="close-btn" onclick="app.closeModal('modal-burn-settings')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="setting-item">
+        <label>默认焚烧时效</label>
+        <select id="setting-default-ttl">
+          <option value="5">5 秒</option>
+          <option value="10" selected>10 秒</option>
+          <option value="30">30 秒</option>
+          <option value="60">60 秒</option>
+        </select>
+      </div>
+      <div class="setting-item">
+        <label>默认阅后即焚</label>
+        <label class="switch">
+          <input type="checkbox" id="setting-default-burn" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="setting-item">
+        <label>防截屏保护</label>
+        <label class="switch">
+          <input type="checkbox" id="setting-screenshot" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+      <button class="btn-primary" onclick="app.saveSettings()">💾 保存设置</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     全局组件：Toast 提示
+══════════════════════════════════════════════ -->
+<div id="toast" class="toast"></div>
+
+<!-- ══════════════════════════════════════════════
+     全局组件：消息销毁动画覆盖层
+══════════════════════════════════════════════ -->
+<div id="burn-overlay" class="burn-overlay">
+  <div class="burn-flames">
+    <span>🔥</span><span>🔥</span><span>🔥</span>
+  </div>
+  <p id="burn-overlay-text">消息正在销毁...</p>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

@@ -201,7 +201,7 @@ server.on('upgrade', (req, socket, head) => {
         users.delete(userId);
 
         broadcastToRoom(user.room, {
-          type: 'user_leave',
+          type: 'user_left',
           username: user.username,
         }, userId);
 
@@ -268,6 +268,46 @@ function handleMessage(ws, msg, setUserId) {
       };
 
       broadcastToRoom(user.room, chatMsg);
+      break;
+    }
+
+    // ── 移动端阅后即焚协议帧 ──────────────────
+    case 'msg_read': {
+      // B端→服务器：对方已打开消息，通知A端
+      const user = users.get(msg.userId || findUserIdByWs(ws));
+      if (!user) break;
+      // 透传给A端（A在同一房间内）
+      broadcastToRoom(user.room, {
+        type: 'msg_read_ack',
+        msgId: msg.msgId,
+        username: user.username,
+      }, msg.userId);
+      console.log(`[XG] MSG_READ_START: ${user.username} opened msg ${msg.msgId}`);
+      break;
+    }
+
+    case 'burn_receipt': {
+      // B端→服务器：消息已销毁，通知A端
+      const user = users.get(msg.userId || findUserIdByWs(ws));
+      if (!user) break;
+      // 透传给A端
+      broadcastToRoom(user.room, {
+        type: 'burn_receipt_ack',
+        msgId: msg.msgId,
+        username: user.username,
+      }, msg.userId);
+      console.log(`[XG] BURN_RECEIPT: ${user.username} burned msg ${msg.msgId}`);
+      break;
+    }
+
+    case 'server_delete': {
+      // 服务器主动推送删除（A端主动删除消息）
+      const user = users.get(msg.userId || findUserIdByWs(ws));
+      if (!user) break;
+      broadcastToRoom(user.room, {
+        type: 'server_msg_deleted',
+        msgId: msg.msgId,
+      }, msg.userId);
       break;
     }
 
