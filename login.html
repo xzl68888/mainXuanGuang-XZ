@@ -8,12 +8,12 @@
 <style>
 :root {
   --bg-void: #0a0a0f;
-  --bg-card: #161624cc;
+  --bg-card: rgba(20, 16, 28, 0.92);
   --accent-cyan: #00e5ff;
-  --accent-red: #ff2d55;
-  --text-primary: #e8e6f0;
-  --text-dim: #6b6880;
-  --border-subtle: rgba(255,255,255,0.06);
+  --accent-red: #ff3b5c;
+  --text-primary: #ffffff;
+  --text-dim: #a0a0b0;
+  --border-subtle: rgba(255,255,255,0.1);
   --font-mono: 'JetBrains Mono', monospace;
   --font-sans: 'Noto Sans SC', sans-serif;
 }
@@ -22,9 +22,12 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-void); color: 
 
 .bg-layer {
   position: fixed; inset: 0; z-index: 0;
-  background: radial-gradient(ellipse 600px 400px at 30% 30%, #ff2d5508, transparent),
-              radial-gradient(ellipse 500px 500px at 70% 70%, #00e5ff06, transparent),
-              linear-gradient(180deg, #0a0a0f, #0f0f18);
+  background: url('bg.jpg') center/cover no-repeat fixed;
+}
+.bg-layer::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(10,4,8,0.5) 0%, rgba(20,6,10,0.6) 50%, rgba(8,4,12,0.55) 100%);
+  backdrop-filter: blur(2px);
 }
 
 .login-container {
@@ -35,10 +38,11 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-void); color: 
 
 .login-card {
   width: 380px; padding: 40px 36px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
+  background: rgba(16, 12, 22, 0.92);
+  border: 1px solid rgba(255,255,255,0.12);
   border-radius: 18px;
-  backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px) saturate(1.2);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 60px rgba(255,59,92,0.06);
   animation: cardIn .5s ease-out;
 }
 
@@ -50,31 +54,31 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-void); color: 
   font-size: 28px; margin-bottom: 16px;
   box-shadow: 0 0 30px rgba(0,229,255,0.2);
 }
-.logo-title { font-size: 22px; font-weight: 700; color: var(--accent-cyan); letter-spacing: 2px; }
+.logo-title { font-size: 22px; font-weight: 700; color: var(--accent-cyan); letter-spacing: 2px; text-shadow: 0 0 20px rgba(0,229,255,0.3); }
 .logo-sub { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); margin-top: 4px; letter-spacing: 1px; }
 
 .form-group { margin-bottom: 20px; }
 .form-label { display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 6px; letter-spacing: 1px; }
 .form-input {
   width: 100%; padding: 12px 16px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid var(--border-subtle);
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.12);
   border-radius: 10px; color: var(--text-primary);
   font-family: var(--font-sans); font-size: 14px;
   outline: none; transition: border-color .25s, box-shadow .25s;
 }
-.form-input:focus { border-color: rgba(0,229,255,0.3); box-shadow: 0 0 0 2px rgba(0,229,255,0.08); }
-.form-input::placeholder { color: var(--text-dim); }
+.form-input:focus { border-color: rgba(0,229,255,0.5); box-shadow: 0 0 0 3px rgba(0,229,255,0.12), 0 0 20px rgba(0,229,255,0.06); }
+.form-input::placeholder { color: rgba(160,160,176,0.6); }
 
 .login-btn {
   width: 100%; padding: 13px;
-  background: linear-gradient(135deg, var(--accent-red), #ff2d55cc);
+  background: linear-gradient(135deg, #ff3b5c, #ff3b5ccc);
   border: none; border-radius: 10px;
   color: white; font-size: 15px; font-weight: 700;
   cursor: pointer; letter-spacing: 1px;
   transition: all .25s;
 }
-.login-btn:hover { box-shadow: 0 0 20px rgba(255,45,85,0.3); transform: translateY(-1px); }
+.login-btn:hover { box-shadow: 0 0 30px rgba(255,59,92,0.4); transform: translateY(-1px); }
 .login-btn:active { transform: scale(0.98); }
 
 .error-msg { color: var(--accent-red); font-size: 12px; text-align: center; margin-top: 12px; min-height: 18px; }
