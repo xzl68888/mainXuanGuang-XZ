@@ -130,6 +130,11 @@
         deleteMessageById(msg.msgId, true);
         break;
 
+      case 'security_result':
+        // 安全检测结果（服务端返回）
+        handleSecurityResult(msg);
+        break;
+
       default:
         appendLog('Unknown: ' + JSON.stringify(msg));
     }
@@ -729,6 +734,280 @@
   }
 
   // ═══════════════════════════════════════════════
+  // 安全中心（ELAM + Defender 检测）
+  // ═══════════════════════════════════════════════
+  let secCheckRunning = false;
+
+  function showSecurityCenter() {
+    showPage('security');
+    STATE.currentView = 'security';
+    runSecurityCheck();
+  }
+
+  function runSecurityCheck() {
+    if (secCheckRunning) return;
+    secCheckRunning = true;
+
+    // 重置所有状态为待检
+    resetSecurityUI();
+
+    if (!STATE.ws || !STATE.connected) {
+      toast('⚠️ 未连接服务器，无法执行安全检测');
+      secCheckRunning = false;
+      return;
+    }
+
+    // 通过 WebSocket 请求服务端执行安全检测
+    STATE.ws.send(JSON.stringify({ type: 'security_check' }));
+  }
+
+  function resetSecurityUI() {
+    const items = ['elam','rt','cloud','network','tamper','asr','signature','coreiso','memory'];
+    items.forEach(key => {
+      const badge = document.getElementById('sec-' + key + '-badge');
+      const desc = document.getElementById('sec-' + key + '-desc');
+      if (badge) { badge.className = 'sec-badge pending'; badge.textContent = '待检'; }
+      if (desc) desc.textContent = '检测中...';
+    });
+    document.getElementById('sec-score-num').textContent = '--';
+    document.getElementById('sec-score-label').textContent = '扫描中...';
+    const circle = document.getElementById('sec-score-circle');
+    if (circle) circle.style.strokeDashoffset = '327';
+  }
+
+  /**
+   * 处理服务端返回的安全检测结果
+   * @param {Object} data - 服务端 security_result 消息
+   */
+  function handleSecurityResult(data) {
+    secCheckRunning = false;
+    let score = 0;
+    const maxScore = 100;
+    const weights = {
+      elam: 15, realtime: 12, cloud: 12, network: 10,
+      tamper: 10, asr: 10, signature: 13, coreiso: 9, memory: 9,
+    };
+
+    // ELAM
+    if (data.elam !== undefined) {
+      const elamPass = data.elam.enabled === true || data.elam.status === 'On' || data.elam.ELAMStatus === true;
+      updateSecItem('elam', elamPass, data.elam.desc || (elamPass ? '已启用 - 启动早期保护' : '未启用'));
+      if (data.elam.level !== undefined)
+        setEl('sec-elam-level', getELAMLevelLabel(data.elam.level));
+      if (data.elam.driver !== undefined)
+        setEl('sec-elam-driver', data.elam.driver ? '✅ 已注册' : '❌ 未注册');
+      if (elamPass) score += weights.elam;
+    }
+
+    // 实时防护
+    if (data.realtimeProtection !== undefined) {
+      const pass = data.realtimeProtection === true;
+      updateSecItem('rt', pass, pass ? '实时监控已开启' : '⚠️ 实时防护未开启');
+      if (pass) score += weights.realtime;
+    }
+
+    // 云端保护
+    if (data.cloudProtection !== undefined) {
+      const pass = data.cloudProtection === true || data.cloudProtection === 'Enabled';
+      updateSecItem('cloud', pass, pass ? '云端智能保护已启用' : '云端保护未启用');
+      if (pass) score += weights.cloud;
+    }
+
+    // 网络保护
+    if (data.networkProtection !== undefined) {
+      const pass = data.networkProtection === true || data.networkProtection === 'Enabled';
+      updateSecItem('network', pass, pass ? '网络攻击拦截已启用' : '网络保护未启用');
+      if (pass) score += weights.network;
+    }
+
+    // 篡改防护
+    if (data.tamperProtection !== undefined) {
+      const pass = data.tamperProtection === true || data.tamperProtection === 'On' || data.tamperProtected === true;
+      updateSecItem('tamper', pass, pass ? '篡改防护已锁定' : '篡改防护可能被禁用');
+      if (pass) score += weights.tamper;
+    }
+
+    // ASR
+    if (data.asr !== undefined || data.puaProtection !== undefined) {
+      const asrVal = data.asr ?? data.puaProtection;
+      const pass = asrVal === true || asrVal === 'Enabled';
+      updateSecItem('asr', pass, pass ? 'ASR / PUA 防护已启用' : 'ASR 规则未完全配置');
+      if (pass) score += weights.asr;
+    }
+
+    // 签名更新
+    if (data.signatureLastUpdated !== undefined) {
+      const ts = data.signatureLastUpdated;
+      const ageHours = ts ? (Date.now() - new Date(ts).getTime()) / 3600000 : 9999;
+      const fresh = ageHours < 24;
+      updateSecItem('signature', fresh,
+        ts ? '更新于 ' + new Date(ts).toLocaleString('zh-CN') : '未知');
+      if (fresh) score += weights.signature;
+      else if (ageHours < 168) score += Math.round(weights.signature * 0.5);
+    }
+
+    // 核心隔离
+    if (data.coreIsolation !== undefined || data.coreIsolationEnabled !== undefined) {
+      const ciVal = data.coreIsolation ?? data.coreIsolationEnabled;
+      const pass = ciVal === true;
+      updateSecItem('coreiso', pass, pass ? '核心隔离已启用 (HVCI)' : '核心隔离未启用');
+      if (pass) score += weights.coreiso;
+    }
+
+    // 内存完整性
+    if (data.memoryIntegrity !== undefined || data.hvciEnabled !== undefined) {
+      const miVal = data.memoryIntegrity ?? data.hvciEnabled;
+      const pass = miVal === true;
+      updateSecItem('memory', pass, pass ? '内存完整性 (HVCI) 已启用' : '内存完整性未启用');
+      if (pass) score += weights.memory;
+    }
+
+    // 更新评分环形图
+    animateScore(score);
+  }
+
+  function updateSecItem(key, pass, desc) {
+    const badge = document.getElementById('sec-' + key + '-badge');
+    const descEl = document.getElementById('sec-' + key + '-desc');
+    const item = document.getElementById('sec-' + key + '-status');
+    if (badge) badge.className = 'sec-badge ' + (pass ? 'pass' : 'fail');
+    if (badge) badge.textContent = pass ? '✅ 正常' : '❌ 异常';
+    if (descEl) descEl.textContent = desc;
+    if (item && pass) {
+      item.classList.add('pass-flash');
+      setTimeout(() => item.classList.remove('pass-flash'), 600);
+    }
+  }
+
+  function animateScore(score) {
+    const numEl = document.getElementById('sec-score-num');
+    const labelEl = document.getElementById('sec-score-label');
+    const circle = document.getElementById('sec-score-circle');
+
+    // 数字动画
+    let current = 0;
+    const step = Math.ceil(score / 30);
+    const timer = setInterval(() => {
+      current += step;
+      if (current >= score) { current = score; clearInterval(timer); }
+      numEl.textContent = current;
+    }, 30);
+
+    // 环形进度动画
+    const circumference = 327; // 2 * PI * 52 ≈ 327
+    const offset = circumference - (score / 100) * circumference;
+    setTimeout(() => {
+      if (circle) circle.style.strokeDashoffset = String(offset);
+    }, 200);
+
+    // 标签文字
+    setTimeout(() => {
+      if (score >= 90) labelEl.textContent = '🛡️ 安全状态优秀';
+      else if (score >= 70) labelEl.textContent = '🟡 安全状态良好';
+      else if (score >= 50) labelEl.textContent = '🟠 存在安全风险';
+      else labelEl.textContent = '🔴 严重安全隐患！';
+
+      // 改变颜色
+      if (score >= 70) numEl.style.color = '#00ff88';
+      else if (score >= 50) numEl.style.color = '#ffb800';
+      else numEl.style.color = '#ff2d55';
+    }, 500);
+  }
+
+  function getELAMLevelLabel(level) {
+    const labels = { 0: '允许未签名(不推荐)', 1: '允许良性软件', 2: '可疑软件阻止(推荐)', 3: '全部阻止(最严)' };
+    return labels[level] ?? ('级别 ' + level);
+  }
+
+  function setEl(id, text) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
+  }
+
+  /**
+   * 下载一键加固 PowerShell 脚本
+   */
+  function downloadHardeningScript() {
+    const script = `# ============================================================
+# XG 安全加固脚本 - Microsoft Defender 全方位防护
+# 建议以管理员权限运行
+# ============================================================
+Write-Host "=== Microsoft Defender 安全加固 ===" -ForegroundColor Cyan
+Write-Host ""
+
+# ── 1. ELAM 启动保护 ──────────────────────────────
+Write-Host "[1/8] 配置 ELAM 启动保护..." -ForegroundColor Yellow
+try {
+    Set-MpPreference -EnableELAM 1 -ErrorAction Stop
+    Write-Host "  ✓ ELAM 已启用" -ForegroundColor Green
+} catch {
+    Write-Host "  ⚠ ELAM 配置需要管理员权限" -ForegroundColor Red
+}
+
+# ── 2. 实时防护 ───────────────────────────────────
+Write-Host "[2/8] 启用实时防护..." -ForegroundColor Yellow
+Set-MpPreference -DisableRealtimeMonitoring \$false
+Set-MpPreference -DisableBehaviorMonitoring \$false
+Set-MpPreference -DisableScriptScanning \$false
+Write-Host "  ✓ 实时防护已启用" -ForegroundColor Green
+
+# ── 3. 云端保护 + 样本提交 ────────────────────────
+Write-Host "[3/8] 启用云端智能保护..." -ForegroundColor Yellow
+Set-MpPreference -EnableCloudProtection \$true
+Set-MpPreference -SubmitSamplesConsent Always
+Write-Host "  ✓ 云端保护已启用 (安全性+70%)" -ForegroundColor Green
+
+# ── 4. 网络保护 ───────────────────────────────────
+Write-Host "[4/8] 启用网络保护..." -ForegroundColor Yellow
+Set-MpPreference -EnableNetworkProtection Enabled
+Write-Host "  ✓ 网络攻击拦截已启用" -ForegroundColor Green
+
+# ── 5. 扫描选项 ───────────────────────────────────
+Write-Host "[5/8] 配置全面扫描..." -ForegroundColor Yellow
+Set-MpPreference -DisableArchiveScanning \$false
+Set-MpPreference -DisableRemovableDriveScanning \$false
+Set-MpPreference -DisableEmailScanning \$false
+Write-Host "  ✓ 全面扫描已配置" -ForegroundColor Green
+
+# ── 6. ASR / PUA 防护 ─────────────────────────────
+Write-Host "[6/8] 启用 ASR 攻击面减少规则..." -ForegroundColor Yellow
+Set-MpPreference -PUAProtection Enabled
+Set-MpPreference -BlockOnAccessControlPuaApps Enabled
+Write-Host "  ✓ ASR 规则已启用" -ForegroundColor Green
+
+# ── 7. 内存缓解 ───────────────────────────────────
+Write-Host "[7/8] 启用内存缓解..." -ForegroundColor Yellow
+Set-MpPreference -EnableMemoryMitigations \$true
+Write-Host "  ✓ 内存缓解已启用" -ForegroundColor Green
+
+# ── 8. 更新签名并显示状态 ────────────────────────
+Write-Host "[8/8] 更新病毒签名..." -ForegroundColor Yellow
+Update-MpSignature
+Write-Host ""
+Write-Host "=== 防护配置完成 ===" -ForegroundColor Cyan
+Get-MpComputerStatus | Select-Object `
+    AntivirusEnabled, RealTimeProtectionStatus, `
+    AntispywareEnabled, NetworkInspectionSystem, `
+    AntivirusSignatureLastUpdated, IoavStatus `
+    | Format-List
+Write-Host ""
+Write-Host "按任意键退出..." -ForegroundColor DarkGray
+\$null = \$Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")`;
+
+    // 创建下载
+    const blob = new Blob([script], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'XG-Security-Hardening.ps1';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast('📥 加固脚本已下载，请右键管理员运行');
+  }
+
+  // ═══════════════════════════════════════════════
   // 公开 API（供 HTML onclick 调用）
   // ═══════════════════════════════════════════════
   window.app = {
@@ -743,6 +1022,9 @@
     showBurnSettings,
     saveSettings,
     closeModal,
+    showSecurityCenter,
+    runSecurityCheck,
+    downloadHardeningScript,
   };
 
   // ═══════════════════════════════════════════════

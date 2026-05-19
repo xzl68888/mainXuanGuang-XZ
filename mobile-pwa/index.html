@@ -73,6 +73,7 @@
     </div>
     <h2 class="topbar-title">🔥 阅后即焚</h2>
     <div class="topbar-right">
+      <button class="icon-btn" onclick="app.showSecurityCenter()" title="安全中心">🛡️</button>
       <button class="icon-btn" onclick="app.showSettings()" title="设置">⚙️</button>
     </div>
   </header>
@@ -197,6 +198,145 @@
       </div>
       <button class="btn-primary" onclick="app.saveSettings()">💾 保存设置</button>
     </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     页面四：安全中心（ELAM + Defender 加固）
+══════════════════════════════════════════════ -->
+<div id="page-security" class="page">
+  <div class="security-header">
+    <button class="btn-back" onclick="app.goBack()">← 返回</button>
+    <h2>🛡️ 安全中心</h2>
+  </div>
+
+  <!-- 安全评分 -->
+  <div class="sec-score-card">
+    <div class="sec-score-ring">
+      <svg viewBox="0 0 120 120">
+        <circle cx="60" cy="60" r="52" fill="none" stroke="#1a1a2e" stroke-width="8"/>
+        <circle cx="60" cy="60" r="52" fill="none" stroke="#00ff88" stroke-width="8"
+                stroke-dasharray="327" stroke-dashoffset="327" stroke-linecap="round"
+                id="sec-score-circle" transform="rotate(-90 60 60)"/>
+      </svg>
+      <div class="sec-score-text">
+        <span id="sec-score-num">--</span>
+        <small>/100</small>
+      </div>
+    </div>
+    <p class="sec-score-label" id="sec-score-label">检测中...</p>
+  </div>
+
+  <!-- ELAM 状态 -->
+  <div class="sec-section">
+    <h3 class="sec-section-title">🚀 ELAM 启动保护</h3>
+    <div class="sec-item" id="sec-elam-status">
+      <div class="sec-icon">⏳</div>
+      <div class="sec-info">
+        <span class="sec-name">Early Launch AntiMalware</span>
+        <span class="sec-desc" id="sec-elam-desc">检测中...</span>
+      </div>
+      <div class="sec-badge pending" id="sec-elam-badge">待检</div>
+    </div>
+    <div class="sec-detail-card" id="sec-elam-detail">
+      <div class="sec-row"><span>启动级别</span><span id="sec-elam-level">-</span></div>
+      <div class="sec-row"><span>驱动注册</span><span id="sec-elam-driver">-</span></div>
+    </div>
+  </div>
+
+  <!-- Defender 实时防护 -->
+  <div class="sec-section">
+    <h3 class="sec-section-title">🦠 Microsoft Defender</h3>
+    
+    <div class="sec-item" id="sec-rt-status">
+      <div class="sec-icon">🛡️</div>
+      <div class="sec-info">
+        <span class="sec-name">实时防护</span>
+        <span class="sec-desc" id="sec-rt-desc">检测中...</span>
+      </div>
+      <div class="sec-badge pending" id="sec-rt-badge">待检</div>
+    </div>
+
+    <div class="sec-item" id="sec-cloud-status">
+      <div class="sec-icon">☁️</div>
+      <div class="sec-info">
+        <span class="sec-name">云端保护</span>
+        <span class="sec-desc" id="sec-cloud-desc">检测中...</span>
+      </div>
+      <div class="sec-badge pending" id="sec-cloud-badge">待检</div>
+    </div>
+
+    <div class="sec-item" id="sec-network-status">
+      <div class="sec-icon">🌐</div>
+      <div class="sec-info">
+        <span class="sec-name">网络保护</span>
+        <span class="sec-desc" id="sec-network-desc">检测中...</span>
+      </div>
+      <div class="sec-badge pending" id="sec-network-badge">待检</div>
+    </div>
+
+    <div class="sec-item" id="sec-tamper-status">
+      <div class="sec-icon">🔒</div>
+      <div class="sec-info">
+        <span class="sec-name">篡改防护 (Tamper)</span>
+        <span class="sec-desc" id="sec-tamper-desc">检测中...</span>
+      </div>
+      <div class="sec-badge pending" id="sec-tamper-badge">待检</div>
+    </div>
+
+    <div class="sec-item" id="sec-asr-status">
+      <div class="sec-icon">⚔️</div>
+      <div class="sec-info">
+        <span class="sec-name">ASR 攻击面减少</span>
+        <span class="sec-desc" id="sec-asr-desc">检测中...</span>
+      </div>
+      <div class="sec-badge pending" id="sec-asr-badge">待检</div>
+    </div>
+
+    <div class="sec-item" id="sec-signature-status">
+      <div class="sec-icon">📋</div>
+      <div class="sec-info">
+        <span class="sec-name">签名更新时间</span>
+        <span class="sec-desc" id="sec-signature-desc">检测中...</span>
+      </div>
+      <div class="sec-badge pending" id="sec-signature-badge">待检</div>
+    </div>
+  </div>
+
+  <!-- 内存隔离 / 核心隔离 -->
+  <div class="sec-section">
+    <h3 class="sec-section-title">🧠 内核隔离</h3>
+    <div class="sec-item" id="sec-coreiso-status">
+      <div class="sec-icon">📦</div>
+      <div class="sec-info">
+        <span class="sec-name">核心隔离 (Core Isolation)</span>
+        <span class="sec-desc" id="sec-coreiso-desc">检测中...</span>
+      </div>
+      <div class="sec-badge pending" id="sec-coreiso-badge">待检</div>
+    </div>
+    <div class="sec-item" id="sec-memory-status">
+      <div class="sec-icon">💾</div>
+      <div class="sec-info">
+        <span class="sec-name">内存完整性 (HVCI)</span>
+        <span class="sec-desc" id="sec-memory-desc">检测中...</span>
+      </div>
+      <div class="sec-badge pending" id="sec-memory-badge">待检</div>
+    </div>
+  </div>
+
+  <!-- 一键加固按钮 -->
+  <div class="sec-actions">
+    <button class="btn-primary btn-hardening" onclick="app.downloadHardeningScript()" id="btn-download-script">
+      📥 下载一键加固脚本
+    </button>
+    <button class="btn-secondary" onclick="app.runSecurityCheck()" id="btn-recheck">
+      🔍 重新扫描
+    </button>
+  </div>
+
+  <!-- 安全提示 -->
+  <div class="sec-tips">
+    <p>💡 提示：安全检测通过 WebSocket 服务端执行 PowerShell 命令，需要服务端以管理员权限运行。</p>
   </div>
 </div>
 

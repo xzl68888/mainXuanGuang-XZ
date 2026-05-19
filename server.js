@@ -311,6 +311,13 @@ function handleMessage(ws, msg, setUserId) {
       break;
     }
 
+    // ── 安全检测请求 ──────────────────────────────
+    case 'security_check': {
+      // 执行 PowerShell 检测系统安全状态
+      runSecurityCheck(ws);
+      break;
+    }
+
     default:
       console.log('[WS] Unknown message type:', msg.type);
   }
@@ -346,6 +353,94 @@ function encodeWebSocketFrame(data) {
   }
 
   return Buffer.concat([header, payload]);
+}
+
+// ===== 安全检测：ELAM + Defender =====
+function runSecurityCheck(ws) {
+  console.log('[XG] Security check requested');
+
+  const { exec } = require('child_process');
+
+  // 构建 PowerShell 检测命令
+  const psCmd = `
+$mp = Get-MpComputerStatus
+$status = Get-CimInstance -Namespace root/Microsoft/SecurityClient -ClassName AntiMalwareStatus -ErrorAction SilentlyContinue
+$elamReg = reg query "HKLM\\SYSTEM\\CurrentControlSet\\Services\\Microsoft Defender" "EarlyLaunch" 2>$null
+$coreIso = Get-CimInstance -Namespace root/CIMv2/Security/MicrosoftTpm -ClassName Win32_Tpm -ErrorAction SilentlyContinue | Select-Object -ExpandProperty IsEnabled_InitialValue
+
+# ELAM 状态
+$elamOn = $false; $elamLevel = $null; $elamDriver = $false
+if ($status) {
+    $elamOn = $status.ELAMStatus -eq $true
+}
+if ($elamReg) {
+    $elamDriver = $true
+    if ($elamReg -match '0x(\d+)') { $elamLevel = [int]("0x" + $Matches[1]) }
+}
+
+# 签名时间
+$sigTime = $mp.AntivirusSignatureLastUpdated
+if ($sigTime) {
+    $sigTime = $sigTime.ToString('o')
+} else {
+    $sigTime = $null
+}
+
+$result = @{
+    type = "security_result"
+    elam = @{
+        enabled = $elamOn
+        level = $elamLevel
+        driver = $elamDriver
+    }
+    realtimeProtection = $mp.RealTimeProtectionStatus
+    cloudProtection = $mp.EnableCloudProtection
+    networkProtection = $mp.NetworkInspectionSystem -eq $true
+    tamperProtection = $mp.TamperProtectionEnabled -eq $true
+    asr = ($mp.PUAProtection -eq [int]1)
+    signatureLastUpdated = $sigTime
+    coreIsolation = $coreIso -eq $true
+    memoryIntegrity = $null  # 需要管理员权限检测 HVCI
+}
+
+# 尝试获取内存完整性 (HVCI)
+try {
+    $ci = Get-CimInstance -ClassName Win32_DeviceGuard -Namespace root/Microsoft/Windows/DeviceGuard -ErrorAction SilentlyContinue
+    if ($ci) {
+        $result.memoryIntegrity = ($ci.SecurityServicesRunning -band 1) -eq 1
+        $result.coreIsolation = $ci.VirtualizationBasedSecurityStatus -eq 2
+    }
+} catch {}
+
+$result | ConvertTo-Json -Depth 3
+`;
+
+  exec(`powershell -NoProfile -Command ${JSON.stringify(psCmd)}`, {
+    timeout: 15000,
+    maxBuffer: 1024 * 50,
+  }, (error, stdout, stderr) => {
+    let result;
+    try {
+      result = JSON.parse(stdout.trim());
+    } catch (e) {
+      // PowerShell 解析失败，返回基础信息
+      result = {
+        type: 'security_result',
+        error: stderr || e.message,
+        elam: { enabled: false, driver: false, level: null },
+        realtimeProtection: false, cloudProtection: false,
+        networkProtection: false, tamperProtection: false,
+        asr: false, signatureLastUpdated: null,
+        coreIsolation: false, memoryIntegrity: false,
+      };
+      console.error('[XG] Security check parse error:', e.message);
+    }
+
+    if (ws && ws.readyState === ws.OPEN) {
+      ws.send(JSON.stringify(result));
+    }
+    console.log('[XG] Security result sent to client');
+  });
 }
 
 // ===== Start Server =====
