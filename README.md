@@ -1,42 +1,4 @@
-# 
-XuanGuang Group - 加密自焚终端
-## 简介
-
-XuanGuang Group 是一款专注于隐私保护的桌面通讯应用，提供端到端加密的「阅后即焚」消息服务。
-
-## 功能特性
-
-- 🔐 端到端加密 - AES-GCM 256位算法
-- ⏱️ 定时销毁 - 10秒/30秒/60秒可选
-- 💨 消散动画 - 优雅的模糊消失效果
-- 🎨 现代化 UI - Telegram 风格界面
-- 💻 桌面应用 - 基于 Electron 构建
-
-## 快速开始
-
-```bash
-npm install
-npm start
-npm run dist
-```
-
-## 安全修复说明
-
-| 项目 | 修复前 | 修复后 |
-|------|--------|--------|
-| nodeIntegration | `true` ⚠️ | `false` ✅ |
-| contextIsolation | `false` ⚠️ | `true` ✅ |
-| sandbox | 未设置 ⚠️ | `true` ✅ |
-| preload | 无 ⚠️ | `preload.js` ✅ |
-| CSP | 无 / `unsafe-inline` ⚠️ | `script-src 'self'` ✅ |
-| inline-js | `onclick=` ⚠️ | `addEventListener` ✅ |
-| XSS 防护 | 无 ⚠️ | `escapeHtml()` ✅ |
-
-## 许可证
-
-MIT License
-
- *XuanGuang Group
+#  *XuanGuang Group
  * XG 阅后即焚 · 移动端 PWA
  * 核心逻辑：WebSocket + 阅后即焚 + 防截屏
  * 协议基于 server.js: auth / chat / msg_read / burn_receipt
