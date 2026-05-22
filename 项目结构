@@ -1,0 +1,11 @@
+mainXuanGuang-XZ/
+├── server.js        # WebSocket + HTTP 静态服务器
+├── main.js          # Electron 主进程 (桌面端入口)
+├── preload.js       # Electron 预加载脚本 (安全上下文桥接)
+├── module.js        # Web Crypto API - AES-GCM 加密核心模块
+├── chat-app.js      # 聊天客户端核心交互逻辑
+├── login.html       # 房间准入与身份认证页面
+├── chat.html        # 聊天主交互界面
+├── index.html       # 旧版演示页面（保留作参考）
+├── package.json     # 项目清单与依赖配置
+└── README.md        # 本说明文档
