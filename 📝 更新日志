@@ -1,0 +1,62 @@
+# XG 自焚聊天室 v2.0
+
+**阅后即焚** —— 所有通讯消息在设定时间后自动销毁，内存不留痕，安全防恢复。
+
+[xzl68888/mainXuanGuang-XZ](https://github.com/xzl68888/mainXuanGuang-XZ) 是一款专注于隐私保护的轻量级通讯系统。在 v2.0 重构版本中，系统全面升级为基于 WebSocket 的实时架构，并引入了更稳固的端到端加密机制。
+
+---
+
+## ✨ 特性
+
+- 🔐 **AES-256-GCM 端到端加密**：消息在离开客户端前即完成加密，服务器仅充当盲传通道，不留存明文与密钥。
+- ⏱️ **精确时控销毁**：支持 5秒 / 10秒 / 30秒 / 60秒 / 5分钟 多档自毁时间，倒计时归零后通过优雅的模糊动画物理销毁。
+- 💬 **实时多房间通信**：基于 WebSocket 协议，支持用户自由创建或加入不同的私密房间。
+- 👥 **实时动态状态**：房间内在线人数与用户列表毫秒级同步。
+- 🎨 **赛博深色主题**：全新设计的现代化深色 UI，高对比度视觉，全面适配移动端和桌面端。
+- 💻 **全平台桌面支持**：完美契合 Electron，可一键打包为安全隔离的桌面客户端。
+
+---
+
+## 🔒 安全特性
+
+| 特性 / 配置项 | 状态 | 安全说明 |
+| :--- | :--- | :--- |
+| **AES-256-GCM 加密** | ✅ 已启用 | 客户端本地生成会话密钥，防监听 |
+| **路径遍历防护** | ✅ 已防御 | 严格限制后端静态资源服务器的访问边界 |
+| **XSS 漏洞防护** | ✅ 已拦截 | 强制执行 `escapeHtml()` 转义，拒绝恶意脚本注入 |
+| **数据长度硬限制** | ✅ 已限制 | 用户名 max 20 字符 / 房间名 max 30 字符 / 消息 max 2000 字符 |
+| **contextIsolation** | ✅ 开 (True) | Electron 渲染进程与主进程上下文严格隔离 |
+| **nodeIntegration** | ✅ 关 (False)| 禁用渲染进程的 Node.js 权限，防止任意代码执行 |
+| **sandbox** | ✅ 已开启 | 强制渲染进程沙箱化，隔绝系统底层依赖 |
+
+---
+
+## 🚀 快速开始
+
+### 方式一：Web 模式（推荐）
+
+1. **克隆仓库并进入目录**
+   ```bash
+   git clone [https://github.com/xzl68888/mainXuanGuang-XZ.git](https://github.com/xzl68888/mainXuanGuang-XZ.git)
+   cd mainXuanGuang-XZ
+
+Bash
+npm install
+npm start
+
+Bash
+# 启动内置服务器并唤起 Electron 桌面窗口
+npm run electron
+
+Plaintext
+mainXuanGuang-XZ/
+├── server.js        # WebSocket + HTTP 静态服务器
+├── main.js          # Electron 主进程 (桌面端入口)
+├── preload.js       # Electron 预加载脚本 (安全上下文桥接)
+├── module.js        # Web Crypto API - AES-GCM 加密核心模块
+├── chat-app.js      # 聊天客户端核心交互逻辑
+├── login.html       # 房间准入与身份认证页面
+├── chat.html        # 聊天主交互界面
+├── index.html       # 旧版演示页面（保留作参考）
+├── package.json     # 项目清单与依赖配置
+└── README.md        # 本说明文档
